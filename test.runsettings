@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <!-- Specify the environment variables -->
+    <EnvironmentVariables>
+      <PATH>Moo;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Redist\Debug_NonRedist\x64\Microsoft.VC141.DebugCRT;%PATH%</PATH>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

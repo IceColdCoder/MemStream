@@ -67,7 +67,7 @@ namespace MemStream
 	//Utility
 	public:
 		// New method to retrieve used size
-		inline std::streamsize GetUsedSize() const { return _usedSize; }
+		std::streamsize GetUsedSize() const;
 
 	protected:
 		std::streamsize _usedSize = 0; // New member variable to track used size

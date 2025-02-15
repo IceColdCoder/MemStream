@@ -53,6 +53,12 @@ namespace MemStream
 		return _buf;
 	}
 
+	template<class CharT, class Traits>
+	std::streamsize CMemStreamBuf<CharT, Traits>::GetUsedSize() const
+	{
+		return _usedSize; 
+	}
+
 #pragma region Positioning
 	template<class CharT, class Traits>
 	std::basic_streambuf<CharT, Traits>* CMemStreamBuf<CharT, Traits>::setbuf(std::streambuf::char_type* s, std::streamsize n)

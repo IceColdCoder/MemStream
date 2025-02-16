@@ -67,11 +67,11 @@ namespace MemStream
 	//Utility
 	public:
 		// New method to retrieve used size
-		//std::streamsize GetUsedSize() const;
-		std::streamsize CMemStreamBuf<CharT, Traits>::GetUsedSize() const
-		{
-			return _usedSize;
-		}
+		std::streamsize GetUsedSize() const;
+		//std::streamsize CMemStreamBuf<CharT, Traits>::GetUsedSize() const
+		//{
+		//	return _usedSize;
+		//}
 
 	protected:
 		std::streamsize _usedSize = 0; // New member variable to track used size

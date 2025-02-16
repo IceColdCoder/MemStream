@@ -24,14 +24,13 @@ namespace MemStream
 {
 
 	template <typename CharT>
-	CMemStreamBuf<CharT>* CMemStreamBufFactory() {
+	CMemStreamBuf<CharT>* CMemStreamBufFactory() 
+	{
 		return new CMemStreamBuf<CharT>();
 	}
 
 	// Explicit instantiations for required types
-	template MEMSTREAM_API CMemStreamBuf<char>* CMemStreamBufFactory<char>();
-	template MEMSTREAM_API CMemStreamBuf<wchar_t>* CMemStreamBufFactory<wchar_t>();
-	template MEMSTREAM_API CMemStreamBuf<uint8_t>* CMemStreamBufFactory<uint8_t>();
+	template class MEMSTREAM_API MemStream::CMemStreamBuf<char>;
 
 #pragma region Constructors
 	template<class CharT, class Traits>
@@ -59,11 +58,11 @@ namespace MemStream
 		return _buf;
 	}
 
-	//template<class CharT, class Traits>
-	//std::streamsize CMemStreamBuf<CharT, Traits>::GetUsedSize() const
-	//{
-	//	return _usedSize; 
-	//}
+	template<class CharT, class Traits>
+	std::streamsize CMemStreamBuf<CharT, Traits>::GetUsedSize() const
+	{
+		return _usedSize; 
+	}
 
 #pragma region Positioning
 	template<class CharT, class Traits>

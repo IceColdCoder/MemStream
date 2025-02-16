@@ -97,7 +97,8 @@ namespace MemStream
 		//Putback
 	};
 
-	MEMSTREAM_API CMemStreamBuf<char>* CMemStreamBufFactory();
+	template <typename CharT>
+	MEMSTREAM_API CMemStreamBuf<CharT>* CMemStreamBufFactory();
 }
 
 //extern MEMSTREAM_API int nMemStream;

@@ -22,6 +22,17 @@
 
 namespace MemStream
 {
+
+	template <typename CharT>
+	CMemStreamBuf<CharT>* CMemStreamBufFactory() {
+		return new CMemStreamBuf<CharT>();
+	}
+
+	// Explicit instantiations for required types
+	template MEMSTREAM_API CMemStreamBuf<char>* CMemStreamBufFactory<char>();
+	template MEMSTREAM_API CMemStreamBuf<wchar_t>* CMemStreamBufFactory<wchar_t>();
+	template MEMSTREAM_API CMemStreamBuf<uint8_t>* CMemStreamBufFactory<uint8_t>();
+
 #pragma region Constructors
 	template<class CharT, class Traits>
 	CMemStreamBuf<CharT, Traits>::CMemStreamBuf(typename std::vector<CharT>::size_type capacity)
@@ -38,11 +49,6 @@ namespace MemStream
 	CMemStreamBuf<CharT, Traits>::~CMemStreamBuf()
 	{
 		if (_buf != nullptr) delete _buf;
-	}
-
-	MEMSTREAM_API CMemStreamBuf<char>* CMemStreamBufFactory()
-	{
-		return new CMemStreamBuf<char>();
 	}
 
 #pragma endregion Constructors

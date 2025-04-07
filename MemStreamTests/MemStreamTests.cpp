@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
+#include <array>
 
 #define DBOUT( s )            \
 {                             \
@@ -17,16 +18,15 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-
-
-
-
 namespace MemStreamTests
 {
 	TEST_CLASS(MemStreamTests)
 	{
 	private:
 		MemStream::CMemStreamBuf<char> *memStreamPtr;
+
+		std::vector<char> _alphabet = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
+			'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
 
 	public:
 		
@@ -38,6 +38,7 @@ namespace MemStreamTests
 			delete memStreamPtr;
 			assert(true);
 		}
+
 #pragma endregion Constructors
 
 #pragma region sputc
@@ -62,7 +63,6 @@ namespace MemStreamTests
 			assert(true);
 		}
 
-#ifdef _CMEMSTREAMBUF_OVERFLOWBUF
 		TEST_METHOD(Test_sputc_SingleCharBufOverFlow)
 		{
 			memStreamPtr = new MemStream::CMemStreamBuf<char>(1);
@@ -93,7 +93,7 @@ namespace MemStreamTests
 			delete memStreamPtr;
 			assert(true);
 		}
-#endif
+
 #pragma endregion sputc
 
 #pragma region xsputn
@@ -102,10 +102,7 @@ namespace MemStreamTests
 			memStreamPtr = new MemStream::CMemStreamBuf<char>(3);
 			memStreamPtr->sync();
 
-			std::vector<char> iVector;
-			iVector.push_back('a');
-			iVector.push_back('b');
-			iVector.push_back('c');
+			std::vector<char> iVector = { 'a', 'b', 'c' };
 
 			memStreamPtr->xsputn(iVector.data(), iVector.size());
 			assert(memStreamPtr->_buf->size() == 3);
@@ -124,13 +121,7 @@ namespace MemStreamTests
 			memStreamPtr = new MemStream::CMemStreamBuf<char>(3);
 			memStreamPtr->sync();
 
-			std::vector<char> iV;
-			iV.push_back('a');
-			iV.push_back('b');
-			iV.push_back('c');
-			iV.push_back('d');
-			iV.push_back('e');
-			iV.push_back('f');
+			std::vector<char> iV = { 'a', 'b', 'c', 'd', 'e', 'f' };
 
 			memStreamPtr->xsputn(iV.data(), iV.size());
 			assert(memStreamPtr->_buf->size() == 3);
@@ -160,14 +151,8 @@ namespace MemStreamTests
 			memStreamPtr = new MemStream::CMemStreamBuf<char>(6);
 			memStreamPtr->sync();
 
-			std::vector<char> iV;
-			iV.push_back('a');
-			iV.push_back('b');
-			iV.push_back('c');
-			std::vector<char> iV2;
-			iV2.push_back('d');
-			iV2.push_back('e');
-			iV2.push_back('f');
+			std::vector<char> iV = { 'a', 'b', 'c' };
+			std::vector<char> iV2 = { 'd', 'e', 'f' };
 
 			memStreamPtr->xsputn(iV.data(), iV.size());
 			memStreamPtr->xsputn(iV2.data(), iV2.size());
@@ -195,23 +180,16 @@ namespace MemStreamTests
 			memStreamPtr = new MemStream::CMemStreamBuf<char>(100);
 			memStreamPtr->sync();
 
-			std::vector<char> iV;
-			iV.push_back('a');
-			iV.push_back('b');
-			iV.push_back('c');
-			std::vector<char> iV2;
-			iV2.push_back('d');
-			iV2.push_back('e');
-			iV2.push_back('f');
+			std::vector<char> iV = {'a', 'b', 'c' };
+			std::vector<char> iV2 = { 'd', 'e', 'f' };
 
 			memStreamPtr->xsputn(iV.data(), iV.size());
 			memStreamPtr->xsputn(iV2.data(), iV2.size());
 
 			auto usize = memStreamPtr->GetUsedSize();
 
-
 			assert(usize == 6);
-			for (std::size_t i = 0; i < memStreamPtr->_buf->size(); ++i)
+			for (std::size_t i = 0; i < usize; ++i)
 			{
 				DBOUT(memStreamPtr->_buf->at(i));
 				if (i < 3)
@@ -228,5 +206,341 @@ namespace MemStreamTests
 			assert(true);
 		}
 #pragma endregion xsputn
+
+#pragma region sgetc
+		TEST_METHOD(Test_sgetc_SingleCharGet)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(1);
+			memStreamPtr->sync();
+			std::vector<char> iV = {'a'};
+
+			memStreamPtr->xsputn(iV.data(), iV.size());
+
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 1);
+			
+			auto res = memStreamPtr->sgetc();
+			assert('a' == res);
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sgetc_SingleCharGet_2CharTest)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(2);
+			memStreamPtr->sync();
+			std::vector<char> iV = { 'a', 'b' };
+			memStreamPtr->xsputn(iV.data(), iV.size());
+
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 2);
+			assert(usize == iV.size());
+
+			auto res = memStreamPtr->sgetc();
+			auto val = iV.at(0);
+			assert(val == res);
+
+			res = memStreamPtr->sgetc();
+			val = iV.at(1);
+			assert(val != res);
+
+			delete memStreamPtr;
+			assert(true);
+		}
+#pragma endregion sgetc
+
+#pragma region sbumpc
+		TEST_METHOD(Test_sbumpc_SingleCharGet)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(1);
+			memStreamPtr->sync();
+			std::vector<char> iV = { 'a' };
+
+			memStreamPtr->xsputn(iV.data(), iV.size());
+
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 1);
+
+			auto res = memStreamPtr->sbumpc();
+			assert('a' == res);
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sbumpc_2CharGet)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(2);
+			memStreamPtr->sync();
+			std::vector<char> iV = { 'a', 'b' };
+			memStreamPtr->xsputn(iV.data(), iV.size());
+
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 2);
+			assert(usize == iV.size());
+
+			for (std::size_t i = 0; i < usize; ++i)
+			{
+				auto res = memStreamPtr->sbumpc();
+				auto val = iV.at(i);
+				assert(val == res);
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sbumpc_3CharGet)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(3);
+			memStreamPtr->sync();
+			std::vector<char> iV = { 'a', 'b', 'c' };
+			memStreamPtr->xsputn(iV.data(), iV.size());
+
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 3);
+			assert(usize == iV.size());
+
+			for (std::size_t i = 0; i < usize; ++i)
+			{
+				auto res = memStreamPtr->sbumpc();
+				auto val = iV.at(i);
+				assert(val == res);
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sbumpc_AlphabetChars)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(_alphabet.size());
+			memStreamPtr->sync();
+
+			memStreamPtr->xsputn(_alphabet.data(), _alphabet.size());
+			
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == _alphabet.size());
+
+			for (std::size_t i = 0; i < usize; ++i)
+			{
+				auto res = memStreamPtr->sbumpc();
+				auto val = _alphabet.at(i);
+				assert(val == res);
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sbumpc_AlphabetCharsLargeArray)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(100);
+			memStreamPtr->sync();
+
+			memStreamPtr->xsputn(_alphabet.data(), _alphabet.size());
+
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == _alphabet.size());
+
+			for (std::size_t i = 0; i < usize; ++i)
+			{
+				auto res = memStreamPtr->sbumpc();
+				auto val = _alphabet.at(i);
+				assert(val == res);
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+#pragma endregion sbumpc
+
+#pragma region sgetn
+		TEST_METHOD(Test_sgetn_1CharGet)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(1);
+			memStreamPtr->sync();
+
+			std::vector<char> v1 = { 'a' };
+
+			memStreamPtr->xsputn(v1.data(), v1.size());
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 1);
+
+			std::array<char, 1> buffer;
+			auto readCount = memStreamPtr->sgetn(buffer.data(), 1);
+			assert(readCount == 1);
+			assert(buffer.at(0) == 'a');
+
+			readCount = memStreamPtr->sgetn(buffer.data(), 1);
+			assert(readCount == EOF);
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sgetn_1CharGetLargeStream)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(100);
+			memStreamPtr->sync();
+
+			std::vector<char> v1 = { 'a' };
+
+			memStreamPtr->xsputn(v1.data(), v1.size());
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 1);
+
+			std::array<char, 1> buffer;
+			auto readCount = memStreamPtr->sgetn(buffer.data(), 1);
+			assert(readCount == 1);
+			assert(buffer.at(0) == 'a');
+
+			readCount = memStreamPtr->sgetn(buffer.data(), 1);
+			assert(readCount == 0);
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sgetn_2CharStream1Get)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(2);
+			memStreamPtr->sync();
+
+			std::vector<char> v1 = { 'a', 'b' };
+
+			memStreamPtr->xsputn(v1.data(), v1.size());
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 2);
+
+			for (std::size_t i = 0; i < 3; ++i)
+			{
+				std::array<char, 1> buffer;
+				auto readCount = memStreamPtr->sgetn(buffer.data(), 1);
+				if (i < 2)
+				{
+					assert(readCount == 1);
+					assert(buffer.at(0) == v1.at(i));
+				}
+				else
+				{
+					assert(readCount == EOF);
+				}
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sgetn_3CharStream2Get)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(3);
+			memStreamPtr->sync();
+
+			std::vector<char> v1 = { 'a', 'b' };
+
+			memStreamPtr->xsputn(v1.data(), v1.size());
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 2);
+
+			for (std::size_t i = 0; i < 2; ++i)
+			{
+				std::array<char, 2> buffer;
+				auto readCount = memStreamPtr->sgetn(buffer.data(), 2);
+				if (i < 1)
+				{
+					assert(readCount == 2);
+					for (std::size_t j = 0; j < buffer.size(); j++)
+					{
+						assert(buffer.at(j) == v1.at(j));
+					}
+				}
+				else
+				{
+					assert(readCount == 0);
+				}
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sgetn_100CharStream4Write2Get)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(100);
+			memStreamPtr->sync();
+
+			std::vector<char> v1 = { 'a', 'b' , 'c', 'd' };
+
+			memStreamPtr->xsputn(v1.data(), v1.size());
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == 4);
+
+			for (std::size_t i = 0; i < 3; ++i)
+			{
+				std::array<char, 2> buffer;
+				auto readCount = memStreamPtr->sgetn(buffer.data(), 2);
+				if (i < 2)
+				{
+					assert(readCount == 2);
+					for (std::size_t j = 0; j < buffer.size(); j++)
+					{
+						assert(buffer.at(j) == v1.at(j + 2 * i));
+					}
+				}
+				else
+				{
+					assert(readCount == 0);
+				}
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+
+		TEST_METHOD(Test_sgetn_AlphabetCharStreamAlphabetWrite3Get)
+		{
+			memStreamPtr = new MemStream::CMemStreamBuf<char>(100);
+			memStreamPtr->sync();
+
+			auto dataSize = _alphabet.size();
+			memStreamPtr->xsputn(_alphabet.data(), dataSize);
+			auto usize = memStreamPtr->GetUsedSize();
+			assert(usize == dataSize);
+
+			auto iterCount = (int)dataSize / 3 + 1;
+			for (std::size_t i = 0; i < iterCount; ++i)
+			{
+				std::array<char, 3> buffer;
+				auto readCount = memStreamPtr->sgetn(buffer.data(), 3);
+				if (i < iterCount - 1)
+				{
+					assert(readCount == 3);
+					for (std::size_t j = 0; j < readCount; j++)
+					{
+						auto var1 = buffer.at(j);
+						auto var2 = _alphabet.at(j + 3 * i);
+						assert(buffer.at(j) == _alphabet.at(j + 3 * i));
+					}
+				}
+				else if (i == iterCount - 1)
+				{
+					assert(readCount == 2);
+					for (std::size_t j = 0; j < readCount; j++)
+					{
+						assert(buffer.at(j) == _alphabet.at(j + 3 * i));
+					}
+				}
+				else
+				{
+					assert(readCount == 0);
+				}
+			}
+
+			delete memStreamPtr;
+			assert(true);
+		}
+#pragma endregion sgetn
 	};
 }

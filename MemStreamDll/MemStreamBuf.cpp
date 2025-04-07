@@ -22,20 +22,27 @@
 
 namespace MemStream
 {
+#pragma region FactoryMethods
+	// Explicit instantiations for char and wchar_t
+	template class MEMSTREAM_API CMemStreamBuf<char>;
+	template class MEMSTREAM_API CMemStreamBuf<wchar_t>;
 
+	// Factory function
 	template <typename CharT>
-	CMemStreamBuf<CharT>* CMemStreamBufFactory() 
-	{
+	CMemStreamBuf<CharT>* CMemStreamBufFactory() {
 		return new CMemStreamBuf<CharT>();
 	}
 
-	// Explicit instantiations for required types
-	template class MEMSTREAM_API MemStream::CMemStreamBuf<char>;
+	// Explicit instantiation for factory function
+	template CMemStreamBuf<char>* CMemStreamBufFactory<char>();
+	template CMemStreamBuf<wchar_t>* CMemStreamBufFactory<wchar_t>();
+
+#pragma endregion FactoryMethods
 
 #pragma region Constructors
 	template<class CharT, class Traits>
 	CMemStreamBuf<CharT, Traits>::CMemStreamBuf(typename std::vector<CharT>::size_type capacity)
-		: _buf(new std::vector<CharT>(capacity)), _capacity(capacity)
+		: _buf(new std::vector<CharT>(capacity)), _capacity(capacity), _usedSize(0)
 #ifdef _CMEMSTREAMBUF_OVERFLOWBUF
 		, _overflowBuf(new std::vector<CharT>())
 #endif
@@ -52,6 +59,7 @@ namespace MemStream
 
 #pragma endregion Constructors
 
+#pragma region Utility
 	template<class CharT, class Traits>
 	std::vector<CharT>* CMemStreamBuf<CharT, Traits>::GetBuffer()
 	{
@@ -63,10 +71,11 @@ namespace MemStream
 	{
 		return _usedSize; 
 	}
+#pragma endregion Utility
 
 #pragma region Positioning
 	template<class CharT, class Traits>
-	std::basic_streambuf<CharT, Traits>* CMemStreamBuf<CharT, Traits>::setbuf(std::streambuf::char_type* s, std::streamsize n)
+	std::basic_streambuf<CharT, Traits>* CMemStreamBuf<CharT, Traits>::setbuf(CharT* s, std::streamsize n)
 	{
 		auto const begin = s;
 		auto const end = s + n;
@@ -207,18 +216,51 @@ namespace MemStream
 
 #pragma region GetArea
 	template<class CharT, class Traits>
-	std::streamsize CMemStreamBuf<CharT, Traits>::xsgetn(std::streambuf::char_type* s, std::streamsize count)
+	std::streamsize CMemStreamBuf<CharT, Traits>::xsgetn(CharT* s, std::streamsize count)
 	{
-		auto const size(std::min(this->egptr() - this->gptr(), count));
-		std::memcpy(s, this->gptr(), size);
-		this->gbump(size);
+		auto const readableEnd = _buf->data() + _usedSize;
 
-		return this->egptr() == this->gptr() ? CMemStreamBuf<CharT, Traits>::traits_type::eof() : size;
+#ifdef _DEBUG
+		auto dbug_a = this->egptr() - this->gptr();
+		auto dbug_b = this->pptr() - this->gptr();
+		_usedSize - (this->gptr() - _buf->data());
+#endif
+
+		std::streamsize remaining = _usedSize - (this->gptr() - _buf->data());
+		auto const size = std::max<std::streamsize>(0, std::min({
+			this->egptr() - this->gptr(),  // end of get area
+			this->pptr() - this->gptr(),  // put pointer guardrail
+			remaining,                    // enforce _usedSize as upper bound
+			count                         // requested count
+			}));
+
+		std::streamsize totalRead = 0;
+
+		if (size > 0)
+		{
+			std::memcpy(s, this->gptr(), size);
+			this->gbump(size);
+			totalRead += size;
+		}
+
+		if (size - totalRead > 0)
+		{
+			auto uflowRead = this->underflow();
+			while (size - totalRead > 0 && uflowRead != 0)
+			{
+				s[totalRead] = Traits::to_char_type(uflowRead);
+				totalRead++;
+				uflowRead = this->underflow();
+			}
+		}
+		
+		return totalRead == 0 && Traits::eq_int_type(this->underflow(), Traits::eof()) ? EOF : totalRead;
 	}
 
 
-	template<class CharT, class Traits>
-	std::streambuf::int_type CMemStreamBuf<CharT, Traits>::underflow()
+	template <typename CharT, typename Traits>
+	typename std::basic_streambuf<CharT, Traits>::int_type
+	CMemStreamBuf<CharT, Traits>::underflow()
 	{
 		// Check if the get area is empty
 		if (this->gptr() == this->egptr())
@@ -249,13 +291,13 @@ namespace MemStream
 
 #pragma region PutArea
 	//template<class CharT, class Traits>
-	//std::streambuf::int_type CMemStreamBuf<CharT, Traits>::sputc(std::streambuf::char_type ch)
+	//typename std::basic_streambuf<CharT, Traits>::int_type CMemStreamBuf<CharT, Traits>::sputc(std::streambuf::char_type ch)
 	//{
 	//	return Traits::to_int_type(ch);
 	//}
 
 	template<class CharT, class Traits>
-	std::streamsize CMemStreamBuf<CharT, Traits>::xsputn(const std::streambuf::char_type* s, std::streamsize count)
+	std::streamsize CMemStreamBuf<CharT, Traits>::xsputn(const CharT* s, std::streamsize count)
 	{
 	// Ensure we do not write past both the put window and the physical buffer end
 		auto const size = std::min({
@@ -272,23 +314,28 @@ namespace MemStream
 			{
 				_overflowBuf = new std::vector<CharT>();
 			}
+			
+#ifdef _DEBUG
 			auto pOffset = s;
 			auto a = pOffset + size;
 			auto b = pOffset + count;
 			auto c = count - size;
-			_overflowBuf->insert(_overflowBuf->end(), pOffset + size, pOffset + count);
+#endif
+			_overflowBuf->insert(_overflowBuf->end(), s + size, s + count);
 		}
 #endif
+		if (size > 0)
+		{
+			std::copy(s, s + size, _buf->begin() + (this->pptr() - _buf->data()));
+			this->pbump(size);
+			_usedSize += size;
+		}
 
-		std::copy(s, s + size, _buf->begin() + (this->pptr() - _buf->data()));
-
-		this->pbump(size);
-
-		return this->epptr() == this->pptr() ? CMemStreamBuf<CharT, Traits>::traits_type::eof() : size;
+		return size > 0 ? size : CMemStreamBuf<CharT, Traits>::traits_type::eof();
 	}
 
 	template<class CharT, class Traits>
-	std::streambuf::int_type CMemStreamBuf<CharT, Traits>::overflow(std::streambuf::int_type ch)
+	typename std::basic_streambuf<CharT, Traits>::int_type CMemStreamBuf<CharT, Traits>::overflow(CMemStreamBuf<CharT, Traits>::int_type ch)
 	{
 		// Check if we're trying to put an EOF (End-Of-File) character.
 		if (Traits::eq_int_type(ch, Traits::eof())) {

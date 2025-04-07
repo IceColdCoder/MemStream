@@ -4,13 +4,13 @@
 // that uses this DLL. This way any other project whose source files include this file see
 // MEMSTREAM_API functions as being imported from a DLL, whereas this DLL sees symbols
 // defined with this macro as being exported.
-#ifdef MEMSTREAM_EXPORTS
-#define MEMSTREAM_API __declspec(dllexport)
-#define EXPIMP_TEMPLATE
-#else
-#define MEMSTREAM_API __declspec(dllimport)
-#define EXPIMP_TEMPLATE extern
-#endif
+//#ifdef MEMSTREAM_EXPORTS
+//#define MEMSTREAM_API __declspec(dllexport)
+//#define EXPIMP_TEMPLATE
+//#else
+//#define MEMSTREAM_API __declspec(dllimport)
+//#define EXPIMP_TEMPLATE extern
+//#endif
 
 #include <cassert>
 #include <cstring>
@@ -18,6 +18,7 @@
 #include <iostream>
 #include <streambuf>
 
+#include "config.h"
 namespace MemStream
 {
 
@@ -30,6 +31,9 @@ namespace MemStream
 	template<class CharT = char, class Traits = std::char_traits<CharT>>
 	class MEMSTREAM_API CMemStreamBuf : public std::basic_streambuf<CharT, Traits>
 	{
+	static_assert(std::is_same_v<CharT, char> || std::is_same_v<CharT, wchar_t>,
+		"CMemStreamBuf only supports char and wchar_t types.");
+
 	public:
 		std::vector<CharT>* GetBuffer();
 
@@ -56,7 +60,7 @@ namespace MemStream
 
 		
 	public:
-		CMemStreamBuf(typename std::vector<CharT>::size_type capacity = 0);
+		explicit CMemStreamBuf(typename std::vector<CharT>::size_type capacity = 0);
 		~CMemStreamBuf();
 
 		static std::streambuf::int_type to_int_type(std::streambuf::char_type c) noexcept
@@ -80,7 +84,7 @@ namespace MemStream
 	public:
 
 		//Positioning
-		std::basic_streambuf<CharT, Traits>* setbuf(std::streambuf::char_type* s, std::streamsize n) override;
+		std::basic_streambuf<CharT, Traits>* setbuf(CharT* s, std::streamsize n) override;
 		std::streambuf::pos_type seekoff(std::streambuf::off_type off, std::ios_base::seekdir dir,
 			std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
 		std::streambuf::pos_type seekpos(std::streambuf::pos_type pos,
@@ -88,17 +92,18 @@ namespace MemStream
 		int sync() override;
 
 		//Get area
-		std::streamsize xsgetn(std::streambuf::char_type* s, std::streamsize count) override;
-		std::streambuf::int_type underflow() override;
+		std::streamsize xsgetn(CharT* s, std::streamsize count) override;
+		typename std::basic_streambuf<CharT, Traits>::int_type underflow() override;
+
 		//Put area
-		/*std::streambuf::int_type sputc(std::streambuf::char_type ch);*/
-		std::streamsize xsputn(const std::streambuf::char_type* s, std::streamsize count) override;
-		std::streambuf::int_type overflow(std::streambuf::int_type ch = Traits::eof()) override;
+		std::streamsize xsputn(const CharT* s, std::streamsize count) override;
+		typename std::basic_streambuf<CharT, Traits>::int_type overflow(CMemStreamBuf<CharT, Traits>::int_type ch = Traits::eof()) override;
 		//Putback
 	};
 
+	// Factory function declaration
 	template <typename CharT>
-	MEMSTREAM_API CMemStreamBuf<CharT>* CMemStreamBufFactory();
+	CMemStreamBuf<CharT>* CMemStreamBufFactory();
 }
 
 //extern MEMSTREAM_API int nMemStream;
